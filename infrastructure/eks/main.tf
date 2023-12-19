@@ -1,7 +1,3 @@
-locals {
-  cluster_name = "${var.namespace}-${var.stage}-eks"
-}
-
 terraform {
   required_providers {
     kubernetes = {
@@ -20,7 +16,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "19.21.0"
 
-  cluster_name    = local.cluster_name
+  cluster_name    = var.cluster_name
   cluster_version = "1.28"
 
   vpc_id                         = var.vpc_id

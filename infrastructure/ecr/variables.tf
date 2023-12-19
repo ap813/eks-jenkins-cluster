@@ -19,5 +19,5 @@ variable "tags" {
 # Local
 
 variable "jenkins_repo_name" {
-    type = string
+  type = string
 }

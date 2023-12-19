@@ -16,6 +16,10 @@ variable "tags" {
   type = map(string)
 }
 
+variable "cluster_name" {
+  type = string
+}
+
 # Local
 
 variable "vpc_id" {
