@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jenkins-user
+  namespace: jenkins
+type: Opaque
+stringData:
+  JENKINS_ADMIN_ID: $JENKINS_ADMIN_ID
+  JENKINS_ADMIN_PASSWORD: $JENKINS_ADMIN_PASSWORD
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      containers:
+      - name: jenkins
+        image: $AWS_DEV_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/jenkins:$JENKINS_IMAGE_TAG
+        ports:
+          - name: http-port
+            containerPort: 8080
+        volumeMounts:
+          - name: jenkins-vol
+            mountPath: /var/jenkins_vol
+        env:
+          - name: JENKINS_ADMIN_ID
+            valueFrom:
+              secretKeyRef:
+                name: jenkins-user
+                key: JENKINS_ADMIN_ID
+          - name: JENKINS_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: jenkins-user
+                key: JENKINS_ADMIN_PASSWORD
+      volumes:
+        - name: jenkins-vol
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: NodePort
+  selector:
+    app: jenkins
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eks-jenkins-lb
+  namespace: jenkins
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - pathType: Prefix
+          path: "/"
+          backend:
+            service:
+              name: jenkins
+              port:
+                number: 80
